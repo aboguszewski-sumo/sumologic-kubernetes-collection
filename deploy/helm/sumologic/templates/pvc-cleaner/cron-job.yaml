@@ -1,0 +1,121 @@
+{{- if eq (dig "pvc-cleaner" "logs" "enabled" false (.Values | merge (dict))) true }}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ template "sumologic.metadata.name.pvc-cleaner.logs" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "sumologic.labels.app.pvc-cleaner.logs" . }}
+    {{- include "sumologic.labels.common" . | nindent 4 }}
+spec:
+  schedule: "*/15 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          name: {{ template "sumologic.metadata.name.pvc-cleaner.logs" . }}
+          labels:
+            app: {{ template "sumologic.labels.app.pvc-cleaner.logs" . }}
+{{- include "sumologic.labels.common" . | nindent 12 }}
+{{- if .Values.sumologic.podLabels }}
+{{ toYaml .Values.sumologic.podLabels | indent 12 }}
+{{- end }}
+{{- if (dig "pvc-cleaner" "job" "podLabels" false (.Values | merge (dict))) }}
+{{ toYaml (dig "pvc-cleaner" "job" "podLabels" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+          annotations:
+{{- if .Values.sumologic.podAnnotations }}
+{{ toYaml .Values.sumologic.podAnnotations | indent 12 }}
+{{- end }}
+{{- if (dig "pvc-cleaner" "job" "podAnnotations" false (.Values | merge (dict))) }}
+{{ toYaml (dig "pvc-cleaner" "job" "podAnnotations" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+        spec:
+          nodeSelector:
+{{- if (dig "pvc-cleaner" "job" "nodeSelector" false (.Values | merge (dict))) }}
+{{ toYaml (dig "pvc-cleaner" "job" "nodeSelector" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+{{- if (dig "pvc-cleaner" "job" "tolerations" false (.Values | merge (dict))) }}
+          tolerations:
+{{ toYaml (dig "pvc-cleaner" "job" "tolerations" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+{{- if (dig "pvc-cleaner" "job" "affinity" false (.Values | merge (dict))) }}
+          affinity:
+{{ toYaml (dig "pvc-cleaner" "job" "affinity" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+          containers:
+          - name: pvc-cleaner
+            image: {{ (dig "pvc-cleaner" "job" "image" "repository" false (.Values | merge (dict))) }}:{{ (dig "pvc-cleaner" "job" "image" "tag" false (.Values | merge (dict))) }}
+            command:
+             - "pvc-cleaner"
+             - "{{ .Release.Namespace }}"
+             - "app={{ template "sumologic.labels.app.logs.statefulset" . }}"
+             - "{{ template "sumologic.metadata.name.logs.hpa" . }}"
+            imagePullPolicy: {{ (dig "pvc-cleaner" "job" "image" "pullPolicy" false (.Values | merge (dict))) }}
+            resources:
+              {{- toYaml (dig "pvc-cleaner" "job" "resources" false (.Values | merge (dict))) | nindent 14 }}
+          restartPolicy: Never
+          serviceAccountName: {{ .Release.Name }}-pvc-cleaner
+{{- end }}
+
+---
+
+{{- if eq (dig "pvc-cleaner" "metrics" "enabled" false (.Values | merge (dict))) true }}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ template "sumologic.metadata.name.pvc-cleaner.metrics" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "sumologic.labels.app.pvc-cleaner.metrics" . }}
+    {{- include "sumologic.labels.common" . | nindent 4 }}
+spec:
+  schedule: "*/15 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          name: {{ template "sumologic.metadata.name.pvc-cleaner.metrics" . }}
+          labels:
+            app: {{ template "sumologic.labels.app.pvc-cleaner.metrics" . }}
+{{- include "sumologic.labels.common" . | nindent 12 }}
+{{- if .Values.sumologic.podLabels }}
+{{ toYaml .Values.sumologic.podLabels | indent 12 }}
+{{- end }}
+{{- if (dig "pvc-cleaner" "job" "podLabels" false (.Values | merge (dict))) }}
+{{ toYaml (dig "pvc-cleaner" "job" "podLabels" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+          annotations:
+{{- if .Values.sumologic.podAnnotations }}
+{{ toYaml .Values.sumologic.podAnnotations | indent 12 }}
+{{- end }}
+{{- if (dig "pvc-cleaner" "job" "podAnnotations" false (.Values | merge (dict))) }}
+{{ toYaml (dig "pvc-cleaner" "job" "podAnnotations" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+        spec:
+{{- if (dig "pvc-cleaner" "job" "nodeSelector" false (.Values | merge (dict))) }}
+          nodeSelector:
+{{ toYaml (dig "pvc-cleaner" "job" "nodeSelector" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+{{- if (dig "pvc-cleaner" "job" "tolerations" false (.Values | merge (dict))) }}
+          tolerations:
+{{ toYaml (dig "pvc-cleaner" "job" "tolerations" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+{{- if (dig "pvc-cleaner" "job" "affinity" false (.Values | merge (dict))) }}
+          affinity:
+{{ toYaml (dig "pvc-cleaner" "job" "affinity" false (.Values | merge (dict))) | indent 12 }}
+{{- end }}
+          containers:
+          - name: pvc-cleaner
+            image: {{ (dig "pvc-cleaner" "job" "image" "repository" false (.Values | merge (dict))) }}:{{ (dig "pvc-cleaner" "job" "image" "tag" false (.Values | merge (dict))) }}
+            command:
+             - "pvc-cleaner"
+             - "{{ .Release.Namespace }}"
+             - "app={{ template "sumologic.labels.app.metrics.statefulset" . }}"
+             - "{{ template "sumologic.metadata.name.metrics.hpa" . }}"
+            imagePullPolicy: {{ (dig "pvc-cleaner" "job" "image" "pullPolicy" false (.Values | merge (dict))) }}
+            resources:
+              {{- toYaml (dig "pvc-cleaner" "job" "resources" false (.Values | merge (dict))) | nindent 14 }}
+          restartPolicy: Never
+          serviceAccountName: {{ .Release.Name }}-pvc-cleaner
+{{- end }}

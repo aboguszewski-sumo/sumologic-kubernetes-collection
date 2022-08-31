@@ -4494,3 +4494,49 @@ opentelemetry-operator:
 
   manager:
     env:
+
+pvc-cleaner:
+  metrics:
+    enabled: true
+  logs:
+    enabled: true
+  
+  job:
+    image:
+      repository: public.ecr.aws/sumologic/kubernetes-tools
+      tag: 2.12.0
+      pullPolicy: IfNotPresent
+    ## Optionally specify an array of pullSecrets.
+    ## They will be added to serviceaccount that is used for Sumo Logic's
+    ## setup job.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ##
+    # pullSecrets:
+    #   - name: myRegistryKeySecretName
+    resources:
+      limits:
+        memory: 256Mi
+        cpu: 2000m
+      requests:
+        memory: 64Mi
+        cpu: 200m
+    nodeSelector: {}
+    ## Add custom labels only to setup job pod
+
+    ## Node tolerations for server scheduling to nodes with taints
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+    ##
+    tolerations: []
+    # - key: null
+    #   operator: Exists
+    #   effect: "NoSchedule"
+
+    ## Affinity and anti-affinity
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+    ##
+    affinity: {}
+
+    podLabels: {}
+    ## Add custom annotations only to setup job pod
+    podAnnotations: {}
