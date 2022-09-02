@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/SumoLogic/sumologic-kubernetes-collection/tests/integration/internal"
 	"github.com/SumoLogic/sumologic-kubernetes-collection/tests/integration/internal/ctxopts"
+	"github.com/SumoLogic/sumologic-kubernetes-collection/tests/integration/internal/stepfuncs"
 	terrak8s "github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,8 +26,8 @@ func Test_Helm_Otelcol_Traces(t *testing.T) {
 	const (
 		tickDuration         = 3 * time.Second
 		waitDuration         = 3 * time.Minute
-		tracesCount     uint = 4 // number of traces generated
-		spansPerTrace   uint = 500
+		tracesCount     uint = 10 // number of traces generated
+		spansPerTrace   uint = 5
 		totalSpansCount uint = tracesCount * spansPerTrace
 	)
 	featInstall := features.New("traces").
@@ -112,18 +114,23 @@ func Test_Helm_Otelcol_Traces(t *testing.T) {
 				"run", "cst",
 				"--image", "localhost:5001/kubernetes-tools:dev-latest",
 				fmt.Sprintf("--serviceaccount=%s-sumologic", release),
-				"--env", "TOTAL_TRACES=2",
-				"--env", "SPANS_PER_TRACE=2",
+				"--env", fmt.Sprintf("TOTAL_TRACES=%d", tracesCount),
+				"--env", fmt.Sprintf("SPANS_PER_TRACE=%d", spansPerTrace),
 				"--env", fmt.Sprintf("COLLECTOR_HOSTNAME=%s", colName),
 				"--",
 				"customer-trace-tester",
 			}
 			terrak8s.RunKubectl(t, opts, args...)
 			return ctx
-		}).Assess("wait for traces", func(c context.Context, _ *testing.T, _ *envconf.Config) context.Context {
-		time.Sleep(120 * time.Second)
-		return c
-	}).Feature()
+		}).Assess("wait for spans", stepfuncs.WaitUntilExpectedSpansPresent(
+		spansPerTrace*tracesCount*4, // The generator sends spans from four sources
+		map[string]string{},
+		internal.ReceiverMockNamespace,
+		internal.ReceiverMockServiceName,
+		internal.ReceiverMockServicePort,
+		waitDuration,
+		tickDuration,
+	)).Feature()
 
 	testenv.Test(t, featInstall, featTraces)
 }

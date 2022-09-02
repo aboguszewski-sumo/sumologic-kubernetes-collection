@@ -39,6 +39,49 @@ func WaitUntilPodsAvailable(listOptions metav1.ListOptions, count int, wait time
 	}
 }
 
+func WaitUntilExpectedSpansPresent(
+	expectedSpansCount uint,
+	expectedSpansMetadata map[string]string,
+	receiverMockNamespace string,
+	receiverMockServiceName string,
+	receiverMockServicePort int,
+	waitDuration time.Duration,
+	tickDuration time.Duration,
+) features.Func {
+	return func(ctx context.Context, t *testing.T, envConf *envconf.Config) context.Context {
+		kubectlOpts := *ctxopts.KubectlOptions(ctx)
+		kubectlOpts.Namespace = receiverMockNamespace
+		terrak8s.WaitUntilServiceAvailable(t, &kubectlOpts, receiverMockServiceName, int(waitDuration), tickDuration)
+
+		client, closeTunnelFunc := receivermock.NewClientWithK8sTunnel(ctx, t)
+		defer closeTunnelFunc()
+
+		assert.Eventually(t, func() bool {
+			logsCount, err := client.GetSpansCount(t, expectedSpansMetadata)
+			if err != nil {
+				log.ErrorS(err, "failed getting spans counts from receiver-mock")
+				return false
+			}
+			if logsCount < expectedSpansCount {
+				log.InfoS(
+					"received spans, less than expected",
+					"received", logsCount,
+					"expected", expectedSpansCount,
+				)
+				return false
+			}
+			log.InfoS(
+				"received enough spans",
+				"received", logsCount,
+				"expected", expectedSpansCount,
+				"metadata", expectedSpansMetadata,
+			)
+			return true
+		}, waitDuration, tickDuration)
+		return ctx
+	}
+}
+
 // WaitUntilExpectedMetricsPresent returns a features.Func that can be used in `Assess` calls.
 // It will wait until all the provided metrics are returned by receiver-mock's HTTP API on
 // the provided Service and port, until it succeeds or waitDuration passes.
