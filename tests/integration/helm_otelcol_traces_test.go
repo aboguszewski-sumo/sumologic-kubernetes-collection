@@ -24,18 +24,17 @@ import (
 
 func Test_Helm_Otelcol_Traces(t *testing.T) {
 	const (
-		tickDuration         = 3 * time.Second
-		waitDuration         = 3 * time.Minute
-		tracesCount     uint = 10 // number of traces generated
-		spansPerTrace   uint = 5
-		totalSpansCount uint = tracesCount * spansPerTrace
+		tickDuration           = 3 * time.Second
+		waitDuration           = 3 * time.Minute
+		tracesPerExporter uint = 10 // number of traces generated
+		spansPerTrace     uint = 5
 	)
 	featInstall := features.New("traces").
 		Assess("sumologic secret is created with endpoints",
 			func(ctx context.Context, t *testing.T, envConf *envconf.Config) context.Context {
 				terrak8s.WaitUntilSecretAvailable(t, ctxopts.KubectlOptions(ctx), "sumologic", 60, tickDuration)
 				secret := terrak8s.GetSecret(t, ctxopts.KubectlOptions(ctx), "sumologic")
-				require.Len(t, secret.Data, 2, "Secret has incorrect number of endpoints. There should be only 1 endpoint, for logs.")
+				require.Len(t, secret.Data, 2, "Secret has incorrect number of endpoints. There should be 2 endpoints.")
 				return ctx
 			}).
 		// TODO: Rewrite into similar step func as WaitUntilStatefulSetIsReady but for deployments
@@ -103,34 +102,30 @@ func Test_Helm_Otelcol_Traces(t *testing.T) {
 		}).Feature()
 
 	featTraces := features.New("traces").
-		Setup(func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
-			// TODO: This should be refactored. See internal/stepfuncs/logs.go for inspirations.
-			release := ctxopts.HelmRelease(ctx)
-
-			opts := ctxopts.KubectlOptions(ctx)
-
-			colName := fmt.Sprintf("%s-sumologic-otelcol", release)
-			args := []string{
-				"run", "cst",
-				"--image", "localhost:5001/kubernetes-tools:dev-latest",
-				fmt.Sprintf("--serviceaccount=%s-sumologic", release),
-				"--env", fmt.Sprintf("TOTAL_TRACES=%d", tracesCount),
-				"--env", fmt.Sprintf("SPANS_PER_TRACE=%d", spansPerTrace),
-				"--env", fmt.Sprintf("COLLECTOR_HOSTNAME=%s", colName),
-				"--",
-				"customer-trace-tester",
-			}
-			terrak8s.RunKubectl(t, opts, args...)
+		Setup(stepfuncs.GenerateTraces(
+			tracesPerExporter,
+			spansPerTrace,
+			internal.TracesGeneratorName,
+			internal.TracesGeneratorNamespace,
+			internal.TracesGeneratorImage,
+		)).
+		Assess("wait for spans", stepfuncs.WaitUntilExpectedSpansPresent(
+			spansPerTrace*tracesPerExporter*4, // The generator sends spans from four sources
+			map[string]string{},
+			internal.ReceiverMockNamespace,
+			internal.ReceiverMockServiceName,
+			internal.ReceiverMockServicePort,
+			waitDuration,
+			tickDuration,
+		)).
+		Teardown(func(ctx context.Context, t *testing.T, envConf *envconf.Config) context.Context {
+			opts := *ctxopts.KubectlOptions(ctx)
+			opts.Namespace = internal.TracesGeneratorNamespace
+			terrak8s.RunKubectl(t, &opts, "delete", "daemonset", internal.TracesGeneratorName)
 			return ctx
-		}).Assess("wait for spans", stepfuncs.WaitUntilExpectedSpansPresent(
-		spansPerTrace*tracesCount*4, // The generator sends spans from four sources
-		map[string]string{},
-		internal.ReceiverMockNamespace,
-		internal.ReceiverMockServiceName,
-		internal.ReceiverMockServicePort,
-		waitDuration,
-		tickDuration,
-	)).Feature()
+		}).
+		Teardown(stepfuncs.KubectlDeleteNamespaceOpt(internal.TracesGeneratorNamespace)).
+		Feature()
 
 	testenv.Test(t, featInstall, featTraces)
 }
