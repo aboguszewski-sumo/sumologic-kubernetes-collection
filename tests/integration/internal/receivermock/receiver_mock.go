@@ -202,6 +202,41 @@ func (client *ReceiverMockClient) GetSpansCount(t *testing.T, metadataFilters Me
 	return uint(len(spans)), nil
 }
 
+func (client *ReceiverMockClient) GetTracesCounts(t *testing.T, metadataFilters MetadataFilters) ([]uint, error) {
+	path := parseUrl(t, "traces-list")
+
+	queryParams := url.Values{}
+	for key, value := range metadataFilters {
+		queryParams.Set(key, value)
+	}
+
+	url := client.baseUrl.ResolveReference(path)
+	url.RawQuery = queryParams.Encode()
+
+	resp, err := http.Get(url.String())
+	if err != nil {
+		return []uint{}, fmt.Errorf("failed fetching %s, err: %w", url, err)
+	}
+
+	if resp.StatusCode != 200 {
+		return []uint{}, fmt.Errorf(
+			"received status code %d in response to receiver request at %q",
+			resp.StatusCode, url,
+		)
+	}
+
+	var traces [][]Span
+	if err := json.NewDecoder(resp.Body).Decode(&traces); err != nil {
+		return []uint{}, err
+	}
+
+	var tracesLengths = make([]uint, len(traces))
+	for i := 0; i < len(tracesLengths); i++ {
+		tracesLengths[i] = uint(len(traces[i]))
+	}
+	return tracesLengths, nil
+}
+
 // parse metrics list returned by /metrics-list
 // https://github.com/SumoLogic/sumologic-kubernetes-tools/tree/main/src/rust/receiver-mock#statistics
 func parseMetricList(rawMetricsValues string) (map[string]int, error) {

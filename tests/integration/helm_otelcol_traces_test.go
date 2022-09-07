@@ -109,8 +109,56 @@ func Test_Helm_Otelcol_Traces(t *testing.T) {
 			internal.TracesGeneratorNamespace,
 			internal.TracesGeneratorImage,
 		)).
-		Assess("wait for spans", stepfuncs.WaitUntilExpectedSpansPresent(
-			spansPerTrace*tracesPerExporter*4, // The generator sends spans from four sources
+		Assess("wait for otlp http traces", stepfuncs.WaitUntilExpectedTracesPresent(
+			tracesPerExporter,
+			spansPerTrace,
+			map[string]string{
+				"__name__": "root-span-otlpHttp",
+			},
+			internal.ReceiverMockNamespace,
+			internal.ReceiverMockServiceName,
+			internal.ReceiverMockServicePort,
+			waitDuration,
+			tickDuration,
+		)).
+		Assess("wait for otlp grpc traces", stepfuncs.WaitUntilExpectedTracesPresent(
+			tracesPerExporter,
+			spansPerTrace,
+			map[string]string{
+				"__name__": "root-span-otlpGrpc",
+			},
+			internal.ReceiverMockNamespace,
+			internal.ReceiverMockServiceName,
+			internal.ReceiverMockServicePort,
+			waitDuration,
+			tickDuration,
+		)).
+		Assess("wait for zipkin traces", stepfuncs.WaitUntilExpectedTracesPresent(
+			tracesPerExporter,
+			spansPerTrace,
+			map[string]string{
+				"__name__": "root-span-zipkin",
+			},
+			internal.ReceiverMockNamespace,
+			internal.ReceiverMockServiceName,
+			internal.ReceiverMockServicePort,
+			waitDuration,
+			tickDuration,
+		)).
+		Assess("wait for jaeger thrift http traces", stepfuncs.WaitUntilExpectedTracesPresent(
+			tracesPerExporter,
+			spansPerTrace,
+			map[string]string{
+				"__name__": "root-span-jaegerThriftHttp",
+			},
+			internal.ReceiverMockNamespace,
+			internal.ReceiverMockServiceName,
+			internal.ReceiverMockServicePort,
+			waitDuration,
+			tickDuration,
+		)).
+		Assess("wait for all spans", stepfuncs.WaitUntilExpectedSpansPresent(
+			4*tracesPerExporter*spansPerTrace, // there are 4 exporters
 			map[string]string{},
 			internal.ReceiverMockNamespace,
 			internal.ReceiverMockServiceName,
