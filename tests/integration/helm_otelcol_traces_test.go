@@ -26,8 +26,8 @@ func Test_Helm_Otelcol_Traces(t *testing.T) {
 	const (
 		tickDuration           = 3 * time.Second
 		waitDuration           = 3 * time.Minute
-		tracesPerExporter uint = 10 // number of traces generated
-		spansPerTrace     uint = 5
+		tracesPerExporter uint = 2 // number of traces generated
+		spansPerTrace     uint = 2
 	)
 	featInstall := features.New("traces").
 		Assess("sumologic secret is created with endpoints",
@@ -113,7 +113,17 @@ func Test_Helm_Otelcol_Traces(t *testing.T) {
 			tracesPerExporter,
 			spansPerTrace,
 			map[string]string{
-				"__name__": "root-span-otlpHttp",
+				"__name__":           "root-span-otlpHttp",
+				"service.name":       "customer-trace-test-service",
+				"_collector":         "kubernetes",
+				"k8s.cluster.name":   "kubernetes",
+				"k8s.container.name": internal.TracesGeneratorName,
+				"k8s.daemonset.name": internal.TracesGeneratorName,
+				"k8s.namespace.name": internal.TracesGeneratorNamespace,
+				"k8s.pod.pod_name":   internal.TracesGeneratorName,
+				"k8s.pod.label.app":  internal.TracesGeneratorName,
+				// "_sourceCategory":    "kubernetes/customer/trace/tester/customer/trace/tester",
+				"_sourceName": fmt.Sprintf("%s.%s.%s", internal.TracesGeneratorNamespace, internal.TracesGeneratorName, internal.TracesGeneratorName),
 			},
 			internal.ReceiverMockNamespace,
 			internal.ReceiverMockServiceName,
@@ -125,7 +135,17 @@ func Test_Helm_Otelcol_Traces(t *testing.T) {
 			tracesPerExporter,
 			spansPerTrace,
 			map[string]string{
-				"__name__": "root-span-otlpGrpc",
+				"__name__":           "root-span-otlpGrpc",
+				"service.name":       "customer-trace-test-service",
+				"_collector":         "kubernetes",
+				"k8s.cluster.name":   "kubernetes",
+				"k8s.container.name": internal.TracesGeneratorName,
+				"k8s.daemonset.name": internal.TracesGeneratorName,
+				"k8s.namespace.name": internal.TracesGeneratorNamespace,
+				"k8s.pod.pod_name":   internal.TracesGeneratorName,
+				"k8s.pod.label.app":  internal.TracesGeneratorName,
+				// "_sourceCategory":    "kubernetes/customer/trace/tester/customer/trace/tester",
+				"_sourceName": fmt.Sprintf("%s.%s.%s", internal.TracesGeneratorNamespace, internal.TracesGeneratorName, internal.TracesGeneratorName),
 			},
 			internal.ReceiverMockNamespace,
 			internal.ReceiverMockServiceName,
@@ -137,7 +157,17 @@ func Test_Helm_Otelcol_Traces(t *testing.T) {
 			tracesPerExporter,
 			spansPerTrace,
 			map[string]string{
-				"__name__": "root-span-zipkin",
+				"__name__":           "root-span-zipkin",
+				"service.name":       "customer-trace-test-service",
+				"_collector":         "kubernetes",
+				"k8s.cluster.name":   "kubernetes",
+				"k8s.container.name": internal.TracesGeneratorName,
+				"k8s.daemonset.name": internal.TracesGeneratorName,
+				"k8s.namespace.name": internal.TracesGeneratorNamespace,
+				"k8s.pod.pod_name":   internal.TracesGeneratorName,
+				"k8s.pod.label.app":  internal.TracesGeneratorName,
+				// "_sourceCategory":    "kubernetes/customer/trace/tester/customer/trace/tester",
+				"_sourceName": fmt.Sprintf("%s.%s.%s", internal.TracesGeneratorNamespace, internal.TracesGeneratorName, internal.TracesGeneratorName),
 			},
 			internal.ReceiverMockNamespace,
 			internal.ReceiverMockServiceName,
@@ -149,7 +179,18 @@ func Test_Helm_Otelcol_Traces(t *testing.T) {
 			tracesPerExporter,
 			spansPerTrace,
 			map[string]string{
-				"__name__": "root-span-jaegerThriftHttp",
+				"__name__":           "root-span-jaegerThriftHttp",
+				"service.name":       "customer-trace-test-service",
+				"_collector":         "kubernetes",
+				"k8s.cluster.name":   "kubernetes",
+				"k8s.container.name": internal.TracesGeneratorName,
+				"k8s.daemonset.name": internal.TracesGeneratorName,
+				"k8s.namespace.name": internal.TracesGeneratorNamespace,
+				"k8s.pod.pod_name":   internal.TracesGeneratorName,
+				"k8s.pod.label.app":  internal.TracesGeneratorName,
+				// "_sourceCategory":    "kubernetes/customer/trace/tester/customer/trace/tester",
+				"_sourceName":       fmt.Sprintf("%s.%s.%s", internal.TracesGeneratorNamespace, internal.TracesGeneratorName, internal.TracesGeneratorName),
+				"otel.library.name": "jaegerThriftHttp",
 			},
 			internal.ReceiverMockNamespace,
 			internal.ReceiverMockServiceName,
