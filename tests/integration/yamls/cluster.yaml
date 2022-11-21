@@ -1,5 +1,9 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5001"]
+    endpoint = ["http://kind-registry:5000"]
 nodes:
 - role: control-plane
   kubeadmConfigPatches:
@@ -15,6 +19,10 @@ nodes:
     controllerManager:
         extraArgs:
           bind-address: 0.0.0.0
+    data:
+      localRegistryHosting.v1: |
+        host: "localhost:5001"
+        help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
     etcd:
       local:
         dataDir: /tmp/etcd
