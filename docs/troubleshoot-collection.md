@@ -39,6 +39,7 @@
   - [Multiline log detection doesn't work as expected](#multiline-log-detection-doesnt-work-as-expected)
     - [Using text format](#using-text-format)
   - [Out of memory (OOM) failures for Prometheus Pod](#out-of-memory-oom-failures-for-prometheus-pod)
+  - [TODO: autoscaler creating pods in different AZs](#pvc-cleaner)
 
 <!-- /TOC -->
 
@@ -725,3 +726,29 @@ sumologic:
 If you observe that Prometheus Pod needs more and more resources (out of memory failures - OOM killed Prometheus) and you are not able to increase
 them then you may need to configure additional instance of Prometheus due to huge amount of collected metrics in the cluster,
 for details please see [this](/docs/additional-prometheus-configuration.md#additional-prometheus-instance) documentation.
+
+### PVC Cleaner
+
+This chapter is not completed. If you're seeing this in a PR, please request changes during review.
+
+When autoscaler is used to control number of replicas for a statefulset, there might be some PVCs left after autoscaling, eg:
+
+1. Statefulset has 5 replicas, HPA decides to reduce it to 3
+2. Statefulset has 3 replicas, but 5 PVCs
+3. HPA decides to increase number of replicas to 4
+4. Newly created pod reuses PVC left from pod removed in step 1
+
+This can cause problems if pod created in step 4 is created in another AZ than the original one, because PVCs can't be mounted across different AZs.
+
+Kubernetes does not allow to delete unused PVCs for statefulsets yet. It's an alpha feature since version `1.23`.
+To resolve this issue, [pvc-cleaner](https://github.com/SumoLogic/sumologic-kubernetes-tools/blob/main/src/commands/pvc-cleaner) is used.
+
+Usage:
+
+```bash
+./pvc-cleaner <namespace> <pvc-selector> [<hpa-name>]
+```
+
+Where `<namespace>` is the namespace used,
+`<pvc-selector>` is a [selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) (eg. `app=collection-sumologic-otelcol-metrics`)
+and `<hpa-name>` is an optional name of the hpa - if it's used, only `max(desiced, current)` number of PCVs is deleted.
