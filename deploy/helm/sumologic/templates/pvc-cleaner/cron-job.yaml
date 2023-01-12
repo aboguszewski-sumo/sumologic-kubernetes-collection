@@ -1,5 +1,5 @@
 {{- if eq (dig "pvc-cleaner" "logs" "enabled" false (.Values | merge (dict))) true }}
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: {{ template "sumologic.metadata.name.pvc-cleaner.logs" . }}
@@ -55,13 +55,13 @@ spec:
             resources:
               {{- toYaml (dig "pvc-cleaner" "job" "resources" false (.Values | merge (dict))) | nindent 14 }}
           restartPolicy: Never
-          serviceAccountName: {{ .Release.Name }}-pvc-cleaner
+          serviceAccountName: {{ template "sumologic.fullname" . }}-pvc-cleaner
 {{- end }}
 
 ---
 
 {{- if eq (dig "pvc-cleaner" "metrics" "enabled" false (.Values | merge (dict))) true }}
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: {{ template "sumologic.metadata.name.pvc-cleaner.metrics" . }}
@@ -70,7 +70,7 @@ metadata:
     app: {{ template "sumologic.labels.app.pvc-cleaner.metrics" . }}
     {{- include "sumologic.labels.common" . | nindent 4 }}
 spec:
-  schedule: "*/15 * * * *"
+  schedule: "*/3 * * * *"
   jobTemplate:
     spec:
       template:
@@ -117,5 +117,5 @@ spec:
             resources:
               {{- toYaml (dig "pvc-cleaner" "job" "resources" false (.Values | merge (dict))) | nindent 14 }}
           restartPolicy: Never
-          serviceAccountName: {{ .Release.Name }}-pvc-cleaner
+          serviceAccountName: {{ template "sumologic.metadata.name.pvc-cleaner.roles.serviceaccount" . }}
 {{- end }}
